@@ -72,6 +72,48 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(193, 127, 89, 0.15);
     }
+    .cuisine-select {
+      padding: 0.75rem 1rem;
+      font: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      min-width: 160px;
+    }
+    .cuisine-select:focus,
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .filter-select {
+      padding: 0.75rem 1rem;
+      font: inherit;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      min-width: 110px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .filter-check {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .filter-check input {
+      cursor: pointer;
+    }
     .btn {
       padding: 0.75rem 1.5rem;
       font: inherit;
@@ -156,6 +198,19 @@
     .missed {
       color: var(--missed);
     }
+    .macros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+    .macros span {
+      background: var(--bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
     .error, .empty {
       padding: 1rem;
       border-radius: 8px;
@@ -196,17 +251,73 @@
         placeholder="e.g. chicken, rice, tomato"
         autocomplete="off"
       />
+      <select id="spicy" class="filter-select" title="Spicy level">
+        <option value="">Any spice</option>
+        <option value="mild">Mild</option>
+        <option value="medium">Medium</option>
+        <option value="hot">Hot</option>
+      </select>
+      <select id="cuisine" class="cuisine-select" title="Filter by cuisine">
+        <option value="">Any cuisine</option>
+        <option value="american">American</option>
+        <option value="italian">Italian</option>
+        <option value="mexican">Mexican</option>
+        <option value="chinese">Chinese</option>
+        <option value="japanese">Japanese</option>
+        <option value="thai">Thai</option>
+        <option value="indian">Indian</option>
+        <option value="french">French</option>
+        <option value="mediterranean">Mediterranean</option>
+        <option value="greek">Greek</option>
+        <option value="spanish">Spanish</option>
+        <option value="korean">Korean</option>
+        <option value="vietnamese">Vietnamese</option>
+        <option value="british">British</option>
+        <option value="german">German</option>
+        <option value="caribbean">Caribbean</option>
+        <option value="cajun">Cajun</option>
+        <option value="middle eastern">Middle Eastern</option>
+        <option value="southern">Southern</option>
+        <option value="nordic">Nordic</option>
+        <option value="african">African</option>
+        <option value="eastern european">Eastern European</option>
+        <option value="latin american">Latin American</option>
+        <option value="irish">Irish</option>
+        <option value="jewish">Jewish</option>
+      </select>
       <button type="button" class="btn" id="search">Find recipes</button>
     </div>
-    <p class="hint">Separate ingredients with commas.</p>
+    <div class="filters">
+      <label class="filter-check"><input type="checkbox" id="vegan" /> Vegan</label>
+      <label class="filter-check"><input type="checkbox" id="highProtein" /> High protein</label>
+      <label class="filter-check"><input type="checkbox" id="highFat" /> High fat</label>
+    </div>
+    <p class="hint">Separate ingredients with commas. Optionally filter by cuisine, spice, and diet.</p>
 
     <div id="out" class="results"></div>
   </div>
 
   <script>
     const ingredientsEl = document.getElementById("ingredients");
+    const cuisineEl = document.getElementById("cuisine");
+    const spicyEl = document.getElementById("spicy");
+    const veganEl = document.getElementById("vegan");
+    const highProteinEl = document.getElementById("highProtein");
+    const highFatEl = document.getElementById("highFat");
     const searchBtn = document.getElementById("search");
     const out = document.getElementById("out");
+
+    function getMacros(r) {
+      const nut = r.nutrition?.nutrients;
+      if (!nut || !Array.isArray(nut)) return null;
+      const find = (name) => nut.find((n) => n.name?.toLowerCase().includes(name));
+      const cal = find("calorie");
+      const pro = find("protein");
+      const fat = find("fat");
+      const carb = find("carbohydrate");
+      if (!cal && !pro && !fat && !carb) return null;
+      return { cal, pro, fat, carb };
+    }
 
     function setLoading(loading) {
       searchBtn.disabled = loading;
@@ -224,6 +335,15 @@
           const used = (r.usedIngredients || []).map((i) => i.name);
           const missed = (r.missedIngredients || []).map((i) => i.name);
           const url = `https://spoonacular.com/recipes/${encodeURIComponent(r.title.replace(/\s+/g, "-").toLowerCase())}-${r.id}`;
+          const m = getMacros(r);
+          const macroHtml = m && (m.cal || m.pro || m.fat || m.carb)
+            ? `<div class="macros">
+                ${m.cal ? `<span>${Math.round(m.cal.amount)} cal</span>` : ""}
+                ${m.pro ? `<span>${Math.round(m.pro.amount)}g protein</span>` : ""}
+                ${m.carb ? `<span>${Math.round(m.carb.amount)}g carbs</span>` : ""}
+                ${m.fat ? `<span>${Math.round(m.fat.amount)}g fat</span>` : ""}
+              </div>`
+            : "";
           return `
             <article class="card">
               <img class="card-image" src="${r.image || ""}" alt="" loading="lazy" />
@@ -233,6 +353,7 @@
                   ${used.length ? `<span class="used">You have: ${escapeHtml(used.join(", "))}</span>` : ""}
                   ${missed.length ? `<span class="missed">Need: ${escapeHtml(missed.join(", "))}</span>` : ""}
                 </div>
+                ${macroHtml}
               </div>
             </article>
           `;
@@ -262,7 +383,15 @@
       out.innerHTML = '<p class="loading">Loading recipes…</p>';
 
       try {
-        const res = await fetch(`/api/recipes?ingredients=${encodeURIComponent(ingredients)}&number=12`);
+        const params = new URLSearchParams({ ingredients, number: "12" });
+        const cuisine = cuisineEl.value.trim();
+        if (cuisine) params.set("cuisine", cuisine);
+        const spicy = spicyEl.value.trim();
+        if (spicy) params.set("spicy", spicy);
+        if (veganEl.checked) params.set("vegan", "true");
+        if (highProteinEl.checked) params.set("high_protein", "true");
+        if (highFatEl.checked) params.set("high_fat", "true");
+        const res = await fetch(`/api/recipes?${params}`);
         const data = await res.json();
         if (!res.ok) {
           out.innerHTML = `<p class="error">${escapeHtml(data.error || "Something went wrong.")}</p>`;
