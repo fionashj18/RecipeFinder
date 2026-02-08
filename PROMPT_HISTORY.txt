@@ -1,0 +1,5 @@
+1. Could you make a recipe generator using Spoontacular API? I would like a
+minimal design.
+2. Could you add feature where you could chose what cusine
+3. Could you add in options for spicy level, vegan, high protein, high fat and 
+add macros for all the food options
